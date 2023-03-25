@@ -79,7 +79,7 @@ class Agent:
         obs = SimpleUnitObservationWrapper.convert_obs(raw_obs, env_cfg=self.env_cfg)
         obs = obs[self.player]
 
-        obs = th.from_numpy(obs).float()
+        obs = th.from_numpy(obs).float().cuda()
         with th.no_grad():
 
             # to improve performance, we have a rule based action mask generator for the controller used
@@ -88,7 +88,7 @@ class Agent:
                 th.from_numpy(self.controller.action_masks(self.player, raw_obs))
                 .unsqueeze(0)
                 .bool()
-            )
+            ).cuda()
             
             # SB3 doesn't support invalid action masking. So we do it ourselves here
             features = self.policy.policy.features_extractor(obs.unsqueeze(0))

@@ -31,6 +31,9 @@ from stable_baselines3.common.vec_env import (
 from stable_baselines3.ppo import PPO
 
 from wrappers import SimpleUnitDiscreteController, SimpleUnitObservationWrapper
+import warnings
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 class CustomEnvWrapper(gym.Wrapper):
@@ -192,7 +195,7 @@ class TensorboardCallback(BaseCallback):
 
 def save_model_state_dict(save_path, model):
     # save the policy state dict for kaggle competition submission
-    state_dict = model.policy.to("cpu").state_dict()
+    state_dict = model.policy.to("cuda").state_dict()
     th.save(state_dict, save_path)
 
 
