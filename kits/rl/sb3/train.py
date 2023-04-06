@@ -13,8 +13,8 @@ import torch.nn as nn
 from gym import spaces
 from gym.wrappers import TimeLimit
 from luxai_s2.state import ObservationStateDict, StatsStateDict
-from luxai_s2.utils.heuristics.factory_placement import place_near_random_ice
-from luxai_s2.wrappers import SB3Wrapper
+from luxai_s2.env import LuxAI_S2
+from lux.kit import obs_to_game_state, GameState
 from stable_baselines3.common.callbacks import (
     BaseCallback,
     CheckpointCallback,
@@ -29,33 +29,43 @@ from stable_baselines3.common.vec_env import (
     VecVideoRecorder,
 )
 from stable_baselines3.ppo import PPO
+from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
 from wrappers import SimpleUnitDiscreteController, SimpleUnitObservationWrapper
 import warnings
 
+from ray.rllib.algorithms.ppo import PPOConfig
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-class CustomEnvWrapper(gym.Wrapper):
-    def __init__(self, env: gym.Env) -> None:
+def process_obs(obs, player):
+    factories = np.zeros((48, 48))
+    light_robots = np.zeros((48, 48))
+    heavy_robots = np.zeros((48, 48))
+    board = obs[player]['board']
+    rubble = board['rubble']
+    ore = board['ore']
+    ice = board['ice']
+    lichen = board['lichen']
+    return
+
+
+class LuxEnv(MultiAgentEnv):
+    def __init__(self, env_config):
         """
         Adds a custom reward and turns the LuxAI_S2 environment into a single-agent environment for easy training
         """
-        super().__init__(env)
+        super().__init__()
+        self.agents = {0: None, 1: None}
+
         self.prev_step_metrics = None
+        self.env = LuxAI_S2()
 
     def step(self, action):
         agent = "player_0"
         opp_agent = "player_1"
 
-        opp_factories = self.env.state.factories[opp_agent]
-        for k in opp_factories.keys():
-            factory = opp_factories[k]
-            # set enemy factories to have 1000 water to keep them alive the whole around and treat the game as single-agent
-            factory.cargo.water = 1000
-
-        # submit actions for just one agent to make it single-agent
-        # and save single-agent versions of the data below
         action = {agent: action}
         obs, _, done, info = self.env.step(action)
         obs = obs[agent]

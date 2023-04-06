@@ -19,6 +19,7 @@ from wrappers import SimpleUnitDiscreteController, SimpleUnitObservationWrapper
 # any files in the logs folder are not necessary. Make sure to exclude the .zip extension here
 MODEL_WEIGHTS_RELATIVE_PATH = "./best_model"
 
+
 class Agent:
     def __init__(self, player: str, env_cfg: EnvConfig) -> None:
         self.player = player
@@ -81,23 +82,22 @@ class Agent:
 
         obs = th.from_numpy(obs).float().cuda()
         with th.no_grad():
-
             # to improve performance, we have a rule based action mask generator for the controller used
             # which will force the agent to generate actions that are valid only.
             action_mask = (
                 th.from_numpy(self.controller.action_masks(self.player, raw_obs))
-                .unsqueeze(0)
-                .bool()
+                    .unsqueeze(0)
+                    .bool()
             ).cuda()
-            
+
             # SB3 doesn't support invalid action masking. So we do it ourselves here
             features = self.policy.policy.features_extractor(obs.unsqueeze(0))
             x = self.policy.policy.mlp_extractor.shared_net(features)
-            logits = self.policy.policy.action_net(x) # shape (1, N) where N=12 for the default controller
+            logits = self.policy.policy.action_net(x)  # shape (1, N) where N=12 for the default controller
 
-            logits[~action_mask] = -1e8 # mask out invalid actions
+            logits[~action_mask] = -1e8  # mask out invalid actions
             dist = th.distributions.Categorical(logits=logits)
-            actions = dist.sample().cpu().numpy() # shape (1, 1)
+            actions = dist.sample().cpu().numpy()  # shape (1, 1)
 
         # use our controller which we trained with in train.py to generate a Lux S2 compatible action
         lux_action = self.controller.action_to_lux_action(
